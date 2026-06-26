@@ -4,3 +4,4 @@ __pycache__/
 coral.db
 .env
 .DS_Store
+.vscode/
