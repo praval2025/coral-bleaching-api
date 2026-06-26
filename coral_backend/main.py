@@ -6,7 +6,7 @@ from .database import engine
 models.Base.metadata.create_all(bind = engine)
 
 app = FastAPI(
-    title = " Coral Breaching API",
+    title = " Coral Bleaching API",
     description = " API for tracking reef observation and estimating coral breaching risk.",
     version = "0.1.0",
     )
@@ -17,7 +17,7 @@ app.include_router(risk.router)
 @app.get("/")
 def root():
     return {
-        "message": "Coral Breaching API is running",
+        "message": "Coral Bleaching API is running",
         "docs": "/docs",
     }
 
