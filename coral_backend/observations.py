@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .risk import calculate_bleaching_risk
+
 from . import models, schemas
 from .database import get_db
 
@@ -17,15 +19,28 @@ def create_observation(
     reef = db.query(models.Reef).filter(models.Reef.id == observation.reef_id).first()
 
     if reef is None:
-        raise HTTPException(status_code = 404, details = "Reef not found")
-    
-    db_observation = models.Observation(**observation.model_dump())
+        raise HTTPException(status_code = 404, detail = "Reef not found")
 
-    db.add(db_observation)
+    observation_data = observation.model_dump()
+
+    risk_result = calculate_bleaching_risk(
+        sst_anomaly = observation.sst_anomaly,
+        hotspot = observation.hotspot,
+        degree_heating_weeks = observation.degree_heating_weeks,
+        bleaching_percent = observation.bleaching_percent,
+        mortality_percentage = observation.mortality_percentage,
+        recent_storm = observation.recent_storm
+    )
+
+    observation_data["risk_score"] = risk_result["risk_score"]
+
+    observation_data["risk_level"] = risk_result["risk_level"]
+    new_observation = models.Observation(**observation_data)
+    db.add(new_observation)
     db.commit()
-    db.refresh(db_observation)
+    db.refresh(new_observation)
 
-    return db_observation
+    return new_observation
 
 @router.get("/", response_model = list[schemas.ObservationResponse])
 
@@ -41,6 +56,5 @@ def get_observations_for_reef(reef_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code = 404, detail = "Reef not found")
     
     return db.query(models.Observation).filter(models.Observation.reef_id == reef_id).all()
-
 
 
